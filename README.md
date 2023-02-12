@@ -32,7 +32,7 @@ $ echo hello, world | sendtoteams
 ## Install
 
 ```
-pip install git+git@github.com:mkyutani/teams-webhook.git
+pip3 install git+https://github.com/mkyutani/teams-webhook.git
 ```
 
 ## License
