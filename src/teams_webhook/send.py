@@ -15,7 +15,7 @@ def send():
 
     import argparse
     parser = argparse.ArgumentParser(description='Send incoming webhook')
-    parser.add_argument('-t', '--text', nargs=1, help=f'text to send')
+    parser.add_argument('-t', '--text', nargs=1, help=f'message instead of /dev/stdin')
     parser.add_argument('-u', '--url', nargs=1, help=f'webhook url (default: {url})')
 
     args = parser.parse_args()
