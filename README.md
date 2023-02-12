@@ -42,7 +42,7 @@ For example:
 🔸 baz
 ```
 * Teams' text
-![Text in Teams](img/webhook-title-sample.img)
+![Text in Teams](img/webhook-title-sample.png)
 
 
 ## Install
