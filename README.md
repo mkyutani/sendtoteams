@@ -42,6 +42,7 @@ For example:
 🔸 baz
 ```
 * Teams' text
+
 ![Text in Teams](img/webhook-title-sample.png)
 
 
