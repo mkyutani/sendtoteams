@@ -58,13 +58,14 @@ def send():
 
     if not url:
         print('No webhook url ($TEAMS_WEBHOOK or -u parameter is necessary)', file=sys.stderr)
-        exit(1)
+        return 1
 
     res = None
     try:
         res = requests.post(url, json=message)
     except Exception as e:
         print(e, file=sys.stderr)
+        return 1
 
     if res:
         status = res.status_code
