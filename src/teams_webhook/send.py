@@ -17,6 +17,7 @@ def send():
     parser = argparse.ArgumentParser(description='Send incoming webhook')
     parser.add_argument('-t', '--text', nargs=1, help=f'message instead of /dev/stdin')
     parser.add_argument('-u', '--url', nargs=1, help=f'webhook url (default: {url})')
+    parser.add_argument('--dry', action='store_true', help='dry run')
 
     args = parser.parse_args()
 
@@ -59,6 +60,12 @@ def send():
     if not url:
         print('No webhook url ($TEAMS_WEBHOOK or -u parameter is necessary)', file=sys.stderr)
         return 1
+
+    if args.dry:
+        import json
+        print(f'url={url}')
+        print(json.dumps(message, indent=2, ensure_ascii=False))
+        return 0
 
     res = None
     try:
