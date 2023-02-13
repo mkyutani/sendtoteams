@@ -14,7 +14,7 @@ def send():
     url = os.environ.get('TEAMS_WEBHOOK')
 
     import argparse
-    parser = argparse.ArgumentParser(description='Send incoming webhook')
+    parser = argparse.ArgumentParser(description='Send message from /dev/stdin to Microsoft Teams\' incoming webhook')
     parser.add_argument('-t', '--text', nargs=1, help=f'message instead of /dev/stdin')
     parser.add_argument('-u', '--url', nargs=1, help=f'webhook url (default: {url})')
     parser.add_argument('--dry', action='store_true', help='dry run')
