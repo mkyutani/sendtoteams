@@ -45,6 +45,29 @@ def get_targets(url_string):
 
     return targets
 
+def markdown(text):
+#    print(f'----{text}')
+    converted = ''
+    last = 0
+    matches = re.finditer(r'https?://[\w/:%#\$&\?\(\)~\.=\+\-]+', text)
+    for m in matches:
+        link = m.group()
+        start = m.start()
+        end = start + len(m.group())
+        if last < start:
+            plain = text[last:start]
+            converted = converted + plain
+#            print(f'+ {plain}')
+        markdown = f'[{link}]({link})'
+        converted = converted + markdown
+#        print(f'> {markdown}')
+        last = end
+    if last < len(text):
+        rest = text[last:len(text)]
+        converted = converted + rest
+#        print(f'+ {rest}')
+    return converted
+
 def send():
     sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
@@ -91,7 +114,8 @@ def send():
             return 1
 
     text = sys.stdin.read()
-    text = re.sub(r'[\n\r]', r'  \n', text)
+    md = markdown(text)
+    md = re.sub(r'[\n\r]', r'  \n', md)
 
     message = {
         'text': text,
@@ -106,7 +130,7 @@ def send():
                     'body': [
                         {
                             'type': 'TextBlock',
-                            'text': text,
+                            'text': md,
                             'wrap': True,
                             'markdown': True
                         }
