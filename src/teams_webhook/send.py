@@ -146,28 +146,14 @@ def send():
         print(json.dumps(message, indent=2, ensure_ascii=False))
         return 0
 
-    res = None
     try:
-        headers = {
-            'Content-Type': 'application/json'
-        }
-        data = message
-        res = requests.post(url, json=data, headers=headers)
+        headers = { 'Content-Type': 'application/json' }
+        res = requests.post(url, json=message, headers=headers)
+        print(f'{res.status_code} {res.reason}')
+        return 0 if res.ok else 1
     except Exception as e:
         print(e, file=sys.stderr)
         return 1
-
-    if res:
-        status = res.status_code
-    else:
-        status = None
-
-    print(f'{status}')
-
-    if status is None or status >= 400:
-        return 1
-    else:
-        return 0
 
 if __name__ == '__main__':
     exit(send())
