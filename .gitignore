@@ -6,6 +6,8 @@ env.bak/
 site/
 work/
 local/
+*.local
+*.local.*
 
 # Virtual Environments
 .venv

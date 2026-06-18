@@ -5,37 +5,45 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-# Install in development mode
+# Install in development mode (also installs the `requests` dependency)
 pip install -e .
 
-# Install dependencies only
-pip install requests
-
-# Run the CLI
-sendtoteams -u <webhook_url> -t 'message'
+# Run the CLI — the message is read from stdin (there is no -t/--text flag)
 echo 'message' | sendtoteams -u <webhook_url>
+echo 'message' | sendtoteams -n <target_name>   # resolve URL from TEAMS_WEBHOOK
 
-# Dry run (prints JSON without sending)
+# Dry run (prints resolved url + JSON payload, sends nothing)
 echo 'message' | sendtoteams -u <webhook_url> --dry
 
 # List configured webhook targets
 sendtoteams --list
 ```
 
+There is no test suite, linter, or build step configured in this repo; `--dry` is the primary way to inspect behavior.
+
 ## Architecture
 
-This is a single-module Python CLI package (`teams-webhook`) that sends messages to Microsoft Teams via Power Automate workflow webhooks (the Teams incoming webhook connector is deprecated).
+Single-module Python CLI package (`teams-webhook`) that sends stdin to a Microsoft Teams webhook (Power Automate workflow, since the legacy Teams incoming-webhook connector is deprecated).
 
-**Entry point**: `sendtoteams` console script → `teams_webhook.send:send`
+**Entry point**: `sendtoteams` console script → `teams_webhook.send:send` (defined in `setup.cfg`).
 
-**Core flow in [send.py](src/teams_webhook/send.py)**:
-1. `get_targets(url_string)` — parses a semicolon-separated URL config string from the `TEAMS_WEBHOOK` env var into a dict of named targets. Supports aliases (`alias=target_name`) and an implicit `default` target for bare URLs.
-2. `markdown(text)` — converts raw HTTP/HTTPS URLs in text into Adaptive Card markdown link syntax.
-3. `send()` — CLI entrypoint: resolves the target URL (from `-u` flag or named target via `-n`), reads message from stdin, wraps it in a Teams Adaptive Card JSON payload, and POSTs it to the webhook.
+**All logic lives in [send.py](src/teams_webhook/send.py).** `send()` resolves a target URL, reads stdin, builds a payload in one of two formats, and POSTs it (or prints it under `--dry`).
 
-**Message format**: Sends an Adaptive Card (version 1.4) inside a `attachments` array. The `text` field at the top level is also populated (legacy field). Newlines are converted to `  \n` for markdown compatibility.
+### Two output formats
 
-**Webhook URL configuration**: Set `TEAMS_WEBHOOK` env var with semicolon-separated entries:
-- Plain URL → becomes the `default` target
-- `name=url` → named target
-- `alias=name` → alias pointing to another target name
+Each target carries a format, chosen by a URL prefix. `parse_url_entry()` strips the prefix and returns `(url, use_message)`:
+
+- **Card** (default, no prefix or `card:`/`c:`) → `build_card_message()` produces an Adaptive Card (version 1.4) inside an `attachments` array. URLs are rewritten to `[url](url)` markdown by `markdown()`, newlines become `  \n`, and the top-level `text` field is also populated (legacy).
+- **Message** (`msg:`/`message:`/`m:`) → `build_message_message()` produces a flat `{'text': html}` payload. URLs are rewritten to `<a href>` anchors by `anchorize()` and newlines become `<br>`.
+
+Example: `TEAMS_WEBHOOK='msg:https://...'` or `-u 'card:https://...'`.
+
+### Target configuration (`get_targets`)
+
+`TEAMS_WEBHOOK` (or a `-u` value) is a semicolon-separated list of entries, parsed into a `name → value` dict:
+
+- Plain URL (optionally with a `msg:`/`card:` prefix) → the implicit `default` target.
+- `name=url` → a named target.
+- `name=othername` → an alias, stored internally as `alias:othername`. `send()` follows the `alias:` chain (looping until it hits a real URL) when resolving `-n`.
+
+`-n` defaults to `default`. `--list` prints the raw stored values (so aliases show as `alias:...`).
