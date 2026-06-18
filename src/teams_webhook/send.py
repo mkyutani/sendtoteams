@@ -4,12 +4,26 @@ import io
 import os
 import re
 import requests
+import ssl
 import sys
+from requests.adapters import HTTPAdapter
+from urllib3.util.ssl_ import create_urllib3_context
 
 default_target_name = 'default'
 alias_protocol = 'alias:'
 message_types = {'msg', 'message', 'm'}
 card_types = {'card', 'c'}
+
+class RelaxedStrictAdapter(HTTPAdapter):
+    """Keep certificate-chain and hostname verification, but drop the
+    VERIFY_X509_STRICT flag that Python 3.14 enables by default. TLS
+    inspection proxies often issue certificates without an Authority Key
+    Identifier, which strict verification rejects."""
+    def init_poolmanager(self, *args, **kwargs):
+        ctx = create_urllib3_context()
+        ctx.verify_flags &= ~ssl.VERIFY_X509_STRICT
+        kwargs['ssl_context'] = ctx
+        super().init_poolmanager(*args, **kwargs)
 
 def parse_url_entry(value):
     """Parse 'type:url' or plain url. Returns (url, is_message)."""
@@ -127,6 +141,7 @@ def send():
     parser.add_argument('-u', '--url', nargs=1, default=None, help=f'webhook url')
     parser.add_argument('--list', action='store_true', help='list target names')
     parser.add_argument('--dry', action='store_true', help='dry run')
+    parser.add_argument('--relax-tls-strict', action='store_true', help='relax the X509_STRICT TLS check (for TLS-inspection proxies whose certificates lack an Authority Key Identifier); chain and hostname verification stay enabled')
 
     args = parser.parse_args()
 
@@ -174,7 +189,12 @@ def send():
 
     try:
         headers = { 'Content-Type': 'application/json' }
-        res = requests.post(url, json=message, headers=headers)
+        if args.relax_tls_strict:
+            session = requests.Session()
+            session.mount('https://', RelaxedStrictAdapter())
+            res = session.post(url, json=message, headers=headers)
+        else:
+            res = requests.post(url, json=message, headers=headers)
         print(f'{res.status_code} {res.reason}')
         return 0 if res.ok else 1
     except Exception as e:

@@ -116,6 +116,25 @@ url=http://foo
 }
 ```
 
+### TLS inspection proxies
+
+Python 3.14 enables OpenSSL's `VERIFY_X509_STRICT` check by default. A corporate
+TLS-inspection proxy that re-signs traffic often issues certificates without an
+Authority Key Identifier, which strict verification rejects with:
+
+```
+certificate verify failed: Missing Authority Key Identifier
+```
+
+Pass `--relax-tls-strict` to drop only that strict check. Certificate-chain and
+hostname verification stay enabled, so the proxy's CA must still be trusted (e.g.
+via `REQUESTS_CA_BUNDLE`).
+
+```
+$ echo 'hello, world' | sendtoteams --relax-tls-strict
+202 Accepted
+```
+
 ## Install
 
 ```

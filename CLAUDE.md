@@ -17,6 +17,9 @@ echo 'message' | sendtoteams -u <webhook_url> --dry
 
 # List configured webhook targets
 sendtoteams --list
+
+# Behind a TLS-inspection proxy whose certs lack an Authority Key Identifier
+echo 'message' | sendtoteams -u <webhook_url> --relax-tls-strict
 ```
 
 There is no test suite, linter, or build step configured in this repo; `--dry` is the primary way to inspect behavior.
@@ -47,3 +50,12 @@ Example: `TEAMS_WEBHOOK='msg:https://...'` or `-u 'card:https://...'`.
 - `name=othername` → an alias, stored internally as `alias:othername`. `send()` follows the `alias:` chain (looping until it hits a real URL) when resolving `-n`.
 
 `-n` defaults to `default`. `--list` prints the raw stored values (so aliases show as `alias:...`).
+
+### TLS verification (`--relax-tls-strict`)
+
+The POST goes through `requests`. Python 3.14 turns on OpenSSL's `VERIFY_X509_STRICT`
+by default, which rejects certificates lacking an Authority Key Identifier — common
+with TLS-inspection proxies. `--relax-tls-strict` mounts `RelaxedStrictAdapter`, an
+`HTTPAdapter` whose SSL context clears `VERIFY_X509_STRICT` only. Chain and hostname
+verification remain on (it is not `verify=False`), so the proxy CA must still be
+trusted (e.g. via `REQUESTS_CA_BUNDLE`).
